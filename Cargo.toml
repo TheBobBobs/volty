@@ -1,0 +1,9 @@
+[package]
+name = "volty"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+volty-http = { path = "volty-http" }
+volty-types = { path = "volty-types" }
+volty-ws = { path = "volty-ws" }

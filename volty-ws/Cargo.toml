@@ -1,0 +1,18 @@
+[package]
+name = "volty-ws"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+volty-http = { path = "../volty-http" }
+volty-types = { path = "../volty-types" }
+
+async-trait = "0.1"
+futures-util = "0.3"
+log = "0.4"
+moka = { version = "0.12", features = ["future"] }
+serde_json = "1.0"
+tokio = { version = "1.32", features = ["macros", "rt-multi-thread", "time"] }
+tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
