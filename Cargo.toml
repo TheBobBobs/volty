@@ -9,3 +9,8 @@ license = "MIT"
 volty-http = { path = "volty-http" }
 volty-types = { path = "volty-types" }
 volty-ws = { path = "volty-ws" }
+
+[dev-dependencies]
+dotenvy = "0.15"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
