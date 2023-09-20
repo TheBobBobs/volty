@@ -20,5 +20,5 @@ pub mod prelude {
         users::user::User,
     };
 
-    pub use volty_ws::{Cache, RawHandler, UpdateCache, WebSocket};
+    pub use volty_ws::{async_trait, Cache, RawHandler, UpdateCache, WebSocket};
 }
