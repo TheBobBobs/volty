@@ -58,7 +58,15 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
-    pub async fn connect(ws_url: &str, token: &str) -> Self {
+    pub async fn connect(token: impl std::fmt::Display) -> Self {
+        const DEFAULT_WS_URL: &str = "wss://ws.revolt.chat";
+        Self::connect_with_url(DEFAULT_WS_URL, token).await
+    }
+
+    pub async fn connect_with_url(
+        ws_url: impl std::fmt::Display,
+        token: impl std::fmt::Display,
+    ) -> Self {
         let url = format!("{}/?format=json&token={}", &ws_url, &token);
         let (tx, rx) = retrying_connect(&url).await;
         Self {
