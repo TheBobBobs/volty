@@ -22,8 +22,8 @@ impl MessageEdit {
         Self::default()
     }
 
-    pub fn content(mut self, content: impl Into<String>) -> Self {
-        self.content = Some(content.into());
+    pub fn content(mut self, content: impl std::fmt::Display) -> Self {
+        self.content = Some(content.to_string());
         self
     }
 

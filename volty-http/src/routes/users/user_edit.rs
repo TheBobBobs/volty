@@ -57,89 +57,89 @@ impl UserEdit {
         Self::default()
     }
 
-    pub fn display_name(mut self, display_name: String) -> Self {
-        self.display_name = Some(display_name);
+    pub fn display_name(mut self, display_name: impl std::fmt::Display) -> Self {
+        self.display_name = Some(display_name.to_string());
         self
     }
 
-    pub fn avatar(mut self, avatar: String) -> Self {
-        self.avatar = Some(avatar);
+    pub fn avatar(mut self, avatar: impl std::fmt::Display) -> Self {
+        self.avatar = Some(avatar.to_string());
         self
     }
 
-    pub fn status(mut self, status: UserStatus) -> Self {
-        self.status = Some(status);
+    pub fn status(mut self, status: impl Into<UserStatus>) -> Self {
+        self.status = Some(status.into());
         self
     }
 
-    pub fn status_text(mut self, text: String) -> Self {
+    pub fn status_text(mut self, text: impl std::fmt::Display) -> Self {
         if let Some(status) = &mut self.status {
-            status.text = Some(text);
+            status.text = Some(text.to_string());
         } else {
             self.status = Some(UserStatus {
-                text: Some(text),
+                text: Some(text.to_string()),
                 presence: None,
             });
         }
         self
     }
 
-    pub fn status_presence(mut self, presence: Presence) -> Self {
+    pub fn status_presence(mut self, presence: impl Into<Presence>) -> Self {
         if let Some(status) = &mut self.status {
-            status.presence = Some(presence);
+            status.presence = Some(presence.into());
         } else {
             self.status = Some(UserStatus {
                 text: None,
-                presence: Some(presence),
+                presence: Some(presence.into()),
             });
         }
         self
     }
 
-    pub fn profile(mut self, profile: UserProfileData) -> Self {
-        self.profile = Some(profile);
+    pub fn profile(mut self, profile: impl Into<UserProfileData>) -> Self {
+        self.profile = Some(profile.into());
         self
     }
 
-    pub fn profile_content(mut self, content: String) -> Self {
+    pub fn profile_content(mut self, content: impl std::fmt::Display) -> Self {
         if let Some(profile) = &mut self.profile {
-            profile.content = Some(content);
+            profile.content = Some(content.to_string());
         } else {
             self.profile = Some(UserProfileData {
-                content: Some(content),
+                content: Some(content.to_string()),
                 background: None,
             });
         }
         self
     }
 
-    pub fn profile_background(mut self, background: String) -> Self {
+    pub fn profile_background(mut self, background: impl std::fmt::Display) -> Self {
         if let Some(profile) = &mut self.profile {
-            profile.background = Some(background);
+            profile.background = Some(background.to_string());
         } else {
             self.profile = Some(UserProfileData {
                 content: None,
-                background: Some(background),
+                background: Some(background.to_string()),
             });
         }
         self
     }
 
-    pub fn badges(mut self, badges: i32) -> Self {
-        self.badges = Some(badges);
+    pub fn badges(mut self, badges: impl Into<i32>) -> Self {
+        self.badges = Some(badges.into());
         self
     }
 
-    pub fn flags(mut self, flags: i32) -> Self {
-        self.flags = Some(flags);
+    pub fn flags(mut self, flags: impl Into<i32>) -> Self {
+        self.flags = Some(flags.into());
         self
     }
 
-    pub fn remove(mut self, field: FieldsUser) -> Self {
+    pub fn remove(mut self, field: impl Into<FieldsUser>) -> Self {
         if let Some(remove) = &mut self.remove {
-            remove.push(field);
+            remove.push(field.into());
         } else {
-            self.remove = Some(vec![field])
+            self.remove = Some(vec![field.into()])
         }
         self
     }

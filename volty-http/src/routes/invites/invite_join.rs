@@ -1,10 +1,10 @@
 use reqwest::Method;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use volty_types::{channels::channel::Channel, servers::server::Server};
 
 use crate::{error::HttpError, Http};
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum InviteJoinResponse {
     Server {

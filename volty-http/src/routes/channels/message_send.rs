@@ -85,21 +85,21 @@ impl SendableMessage {
         Self::default()
     }
 
-    pub fn content(mut self, content: impl Into<String>) -> Self {
-        self.content = Some(content.into());
+    pub fn content(mut self, content: impl std::fmt::Display) -> Self {
+        self.content = Some(content.to_string());
         self
     }
 
-    pub fn attachment(mut self, attachment: impl Into<String>) -> Self {
-        self.attachments = Some(vec![attachment.into()]);
+    pub fn attachment(mut self, attachment: impl std::fmt::Display) -> Self {
+        self.attachments = Some(vec![attachment.to_string()]);
         self
     }
 
-    pub fn attachments<S: Into<String>>(
+    pub fn attachments<S: std::fmt::Display>(
         mut self,
         attachments: impl IntoIterator<Item = S>,
     ) -> Self {
-        self.attachments = Some(attachments.into_iter().map(|s| s.into()).collect());
+        self.attachments = Some(attachments.into_iter().map(|s| s.to_string()).collect());
         self
     }
 

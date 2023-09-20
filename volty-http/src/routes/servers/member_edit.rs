@@ -29,18 +29,18 @@ impl MemberEdit {
         Self::default()
     }
 
-    pub fn nickname(mut self, nickname: impl Into<String>) -> Self {
-        self.nickname = Some(nickname.into());
+    pub fn nickname(mut self, nickname: impl std::fmt::Display) -> Self {
+        self.nickname = Some(nickname.to_string());
         self
     }
 
-    pub fn avatar(mut self, avatar: impl Into<String>) -> Self {
-        self.avatar = Some(avatar.into());
+    pub fn avatar(mut self, avatar: impl std::fmt::Display) -> Self {
+        self.avatar = Some(avatar.to_string());
         self
     }
 
-    pub fn roles(mut self, roles: impl Into<Vec<String>>) -> Self {
-        self.roles = Some(roles.into());
+    pub fn roles<S: std::fmt::Display>(mut self, roles: impl IntoIterator<Item = S>) -> Self {
+        self.roles = Some(roles.into_iter().map(|s| s.to_string()).collect());
         self
     }
 

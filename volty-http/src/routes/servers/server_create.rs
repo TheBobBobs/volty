@@ -6,7 +6,7 @@ use volty_types::{channels::channel::Channel, servers::server::Server};
 use crate::{error::HttpError, Http};
 
 /// # Server Data
-#[derive(Serialize, Validate)]
+#[derive(Clone, Debug, Deserialize, Serialize, Validate)]
 pub struct CreateServer {
     /// Server name
     #[validate(length(min = 1, max = 32))]
@@ -19,8 +19,28 @@ pub struct CreateServer {
     pub nsfw: Option<bool>,
 }
 
+impl CreateServer {
+    pub fn new(name: impl std::fmt::Display) -> Self {
+        Self {
+            name: name.to_string(),
+            description: None,
+            nsfw: None,
+        }
+    }
+
+    pub fn description(mut self, description: impl std::fmt::Display) -> Self {
+        self.description = Some(description.to_string());
+        self
+    }
+
+    pub fn nsfw(mut self) -> Self {
+        self.nsfw = Some(true);
+        self
+    }
+}
+
 /// # Create Server Response
-#[derive(Deserialize, Validate)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateServerResponse {
     /// Server object
     pub server: Server,

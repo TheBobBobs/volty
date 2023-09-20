@@ -32,13 +32,13 @@ impl RoleEdit {
         Self::default()
     }
 
-    pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.name = Some(name.into());
+    pub fn name(mut self, name: impl std::fmt::Display) -> Self {
+        self.name = Some(name.to_string());
         self
     }
 
-    pub fn colour(mut self, colour: impl Into<String>) -> Self {
-        self.colour = Some(colour.into());
+    pub fn colour(mut self, colour: impl std::fmt::Display) -> Self {
+        self.colour = Some(colour.to_string());
         self
     }
 
