@@ -21,7 +21,7 @@ use volty_types::{
     ws::server::ServerMessage,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Cache {
     inner: Arc<InnerCache>,
 }
@@ -36,9 +36,7 @@ impl Deref for Cache {
 
 impl Cache {
     pub fn new() -> Self {
-        Self {
-            inner: Arc::new(InnerCache::default()),
-        }
+        Self::default()
     }
 }
 
@@ -98,7 +96,7 @@ impl MemberCache {
         matches!(self, MemberCache::Full(_))
     }
 
-    fn to_full(&mut self, members: Vec<Member>) {
+    fn make_full(&mut self, members: Vec<Member>) {
         match self {
             MemberCache::Partial(_) => {
                 let members = members
@@ -153,7 +151,7 @@ impl InnerCache {
 
     pub async fn user(&self) -> User {
         let user_id = self.user_id.get().expect("Only called after ready.");
-        self.get_user(user_id).await.clone().unwrap()
+        self.get_user(user_id).await.unwrap()
     }
 
     pub async fn get_user(&self, user_id: &str) -> Option<User> {
@@ -298,7 +296,7 @@ impl InnerCache {
             drop(s_members);
             let response = http.fetch_members(server_id).await?;
             if let Some(members) = self.members.write().await.get_mut(server_id) {
-                members.to_full(response.members);
+                members.make_full(response.members);
             }
             for user in response.users {
                 self.users.insert(user.id.clone(), user).await;
@@ -361,8 +359,7 @@ impl UpdateCache for InnerCache {
             } => {
                 let user_id = users
                     .iter()
-                    .filter(|u| matches!(u.relationship, Some(RelationshipStatus::User)))
-                    .next()
+                    .find(|u| matches!(u.relationship, Some(RelationshipStatus::User)))
                     .expect("User should be sent in Ready")
                     .id
                     .clone();

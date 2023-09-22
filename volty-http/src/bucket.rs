@@ -83,7 +83,7 @@ impl Bucket {
             self.used += 1;
             Ok(())
         } else {
-            Err(Duration::from(self.reset - Instant::now()))
+            Err(self.reset - Instant::now())
         }
     }
 
@@ -93,8 +93,7 @@ impl Bucket {
             self.used = 0;
             self.reset = now + Duration::from_secs(10);
         }
-        let r = limit - self.used.min(limit);
-        r
+        limit - self.used.min(limit)
     }
 }
 
