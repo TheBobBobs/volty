@@ -5,6 +5,13 @@ edition = "2021"
 description = "API wrapper for revolt.chat"
 license = "MIT"
 
+[workspace]
+members = [
+    "volty-http",
+    "volty-types",
+    "volty-ws"
+]
+
 [dependencies]
 volty-http = { path = "volty-http" }
 volty-types = { path = "volty-types" }
