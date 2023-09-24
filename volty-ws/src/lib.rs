@@ -1,9 +1,12 @@
 pub use async_trait::async_trait;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
+use std::ops::Deref;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::net::TcpStream;
 use tokio::select;
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 use tokio_tungstenite::tungstenite;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
@@ -49,12 +52,25 @@ fn parse_msg(message: tungstenite::Message) -> Option<ServerMessage> {
 
 const HEARTBEAT: u128 = 30_000;
 
+#[derive(Clone)]
 pub struct WebSocket {
+    inner: Arc<InnerWebSocket>,
+}
+
+impl Deref for WebSocket {
+    type Target = InnerWebSocket;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+pub struct InnerWebSocket {
     url: String,
 
-    tx: WsTX,
-    rx: WsRX,
-    last_message: Instant,
+    tx: Mutex<WsTX>,
+    rx: Mutex<WsRX>,
+    last_message: Mutex<Instant>,
 }
 
 impl WebSocket {
@@ -69,22 +85,32 @@ impl WebSocket {
     ) -> Self {
         let url = format!("{}/?format=json&token={}", &ws_url, &token);
         let (tx, rx) = retrying_connect(&url).await;
-        Self {
+        let inner = InnerWebSocket {
             url,
-            tx,
-            rx,
-            last_message: Instant::now(),
+            tx: Mutex::new(tx),
+            rx: Mutex::new(rx),
+            last_message: Mutex::new(Instant::now()),
+        };
+        Self {
+            inner: Arc::new(inner),
         }
     }
 
-    async fn reconnect(&mut self) {
-        let (tx, rx) = retrying_connect(&self.url).await;
-        self.tx = tx;
-        self.rx = rx;
-        self.last_message = Instant::now();
+    async fn update_last_message(&self) {
+        let mut last = self.last_message.lock().await;
+        *last = Instant::now();
     }
 
-    async fn check_error(&mut self, error: tungstenite::Error) -> Result<(), tungstenite::Error> {
+    async fn reconnect(&self) {
+        let (tx, rx) = retrying_connect(&self.url).await;
+        let mut t = self.tx.lock().await;
+        *t = tx;
+        let mut r = self.rx.lock().await;
+        *r = rx;
+        self.update_last_message().await;
+    }
+
+    async fn check_error(&self, error: tungstenite::Error) -> Result<(), tungstenite::Error> {
         log::error!("Check: {:?}", &error);
         use tungstenite::Error;
         match error {
@@ -102,26 +128,31 @@ impl WebSocket {
         }
     }
 
-    pub async fn next(&mut self) -> ServerMessage {
+    pub async fn next(&self) -> ServerMessage {
         loop {
-            if self.last_message.elapsed().as_millis() >= HEARTBEAT * 2 {
+            let last_ms = self.last_message.lock().await.elapsed().as_millis();
+            if last_ms >= HEARTBEAT * 2 {
                 self.reconnect().await;
             }
 
-            let millis = HEARTBEAT - self.last_message.elapsed().as_millis().min(HEARTBEAT);
+            let last_ms = self.last_message.lock().await.elapsed().as_millis();
+            let millis = HEARTBEAT - last_ms.min(HEARTBEAT);
             let duration = Duration::from_millis(millis as u64);
             let heartbeat = sleep(duration);
 
             // TODO might skip messages when select! cancels
-            let next = self.rx.next();
+            let mut rx = self.rx.lock().await;
+            let next = rx.next();
 
             select! {
                 _ = heartbeat => {
+                    drop(rx);
                     if let Err(e) = self.send_ping().await {
                         self.check_error(e).await.unwrap();
                     }
                 }
                 message = next => {
+                    drop(rx);
                     if let Some(msg) = self.handle_message(message).await {
                         log::debug!("Received event: {:?}", &msg);
                         return msg;
@@ -132,10 +163,10 @@ impl WebSocket {
     }
 
     async fn handle_message(
-        &mut self,
+        &self,
         message: Option<Result<tungstenite::Message, tungstenite::Error>>,
     ) -> Option<ServerMessage> {
-        self.last_message = Instant::now();
+        self.update_last_message().await;
         match message {
             Some(result) => match result {
                 Ok(message) => parse_msg(message),
@@ -151,26 +182,35 @@ impl WebSocket {
         }
     }
 
-    pub async fn send(&mut self, message: &ClientMessage) -> Result<(), tungstenite::Error> {
+    pub async fn send(&self, message: &ClientMessage) -> Result<(), tungstenite::Error> {
         log::debug!("Sending message: {:?}", message);
         let text = serde_json::to_string(message).expect("ClientMessage failed to serialize");
         let item = tungstenite::Message::Text(text);
-        let mut result = self.tx.send(item.clone()).await;
-        self.last_message = Instant::now();
+        let mut result = self.tx.lock().await.send(item.clone()).await;
+        self.update_last_message().await;
         while let Err(e) = result {
             self.check_error(e).await?;
-            result = self.tx.send(item.clone()).await;
-            self.last_message = Instant::now();
+            result = self.tx.lock().await.send(item.clone()).await;
+            self.update_last_message().await;
         }
         result
     }
 
-    async fn send_ping(&mut self) -> Result<(), tungstenite::Error> {
-        log::info!("Sending ping");
+    pub async fn send_ping(&self) -> Result<(), tungstenite::Error> {
         let message = ClientMessage::Ping {
             data: Ping::Number(0),
             responded: None,
         };
         self.send(&message).await
+    }
+
+    pub async fn send_typing(
+        &self,
+        channel_id: impl std::fmt::Display,
+    ) -> Result<(), tungstenite::Error> {
+        self.send(&ClientMessage::BeginTyping {
+            channel: channel_id.to_string(),
+        })
+        .await
     }
 }
