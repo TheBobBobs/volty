@@ -1,3 +1,4 @@
+pub mod member_ban;
 pub mod member_edit;
 pub mod member_fetch;
 pub mod members_fetch;
