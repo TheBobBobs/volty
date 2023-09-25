@@ -10,13 +10,16 @@ use crate::{error::HttpError, Http};
 pub struct CreateServer {
     /// Server name
     #[validate(length(min = 1, max = 32))]
-    pub name: String,
+    name: String,
+
     /// Server description
     #[validate(length(min = 0, max = 1024))]
-    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+
     /// Whether this server is age-restricted
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub nsfw: Option<bool>,
+    nsfw: Option<bool>,
 }
 
 impl CreateServer {

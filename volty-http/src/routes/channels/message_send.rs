@@ -11,15 +11,26 @@ use crate::{error::HttpError, Http};
 #[derive(Clone, Debug, Default, Deserialize, Serialize, Validate)]
 pub struct SendableEmbed {
     #[validate(length(min = 1, max = 128))]
-    pub icon_url: Option<String>,
-    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    url: Option<String>,
+
     #[validate(length(min = 1, max = 100))]
-    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+
     #[validate(length(min = 1, max = 2000))]
-    pub description: Option<String>,
-    pub media: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    media: Option<String>,
+
     #[validate(length(min = 1, max = 128), regex = "RE_COLOUR")]
-    pub colour: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    colour: Option<String>,
 }
 
 impl SendableEmbed {
@@ -62,22 +73,33 @@ impl SendableEmbed {
 pub struct SendableMessage {
     /// Message content to send
     #[validate(length(min = 0, max = 2000))]
-    pub content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content: Option<String>,
+
     /// Attachments to include in message
     #[validate(length(min = 1, max = 128))]
-    pub attachments: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    attachments: Option<Vec<String>>,
+
     /// Messages to reply to
-    pub replies: Option<Vec<Reply>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    replies: Option<Vec<Reply>>,
+
     /// Embeds to include in message
     ///
     /// Text embed content contributes to the content length cap
     #[validate(length(min = 1, max = 10))]
-    pub embeds: Option<Vec<SendableEmbed>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    embeds: Option<Vec<SendableEmbed>>,
+
     /// Masquerade to apply to this message
     #[validate]
-    pub masquerade: Option<Masquerade>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    masquerade: Option<Masquerade>,
+
     /// Information about how this message should be interacted with
-    pub interactions: Option<Interactions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    interactions: Option<Interactions>,
 }
 
 impl SendableMessage {

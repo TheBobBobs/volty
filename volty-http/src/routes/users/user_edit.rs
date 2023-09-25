@@ -15,9 +15,10 @@ pub struct UserProfileData {
     #[validate(length(min = 0, max = 2000))]
     #[serde(skip_serializing_if = "Option::is_none")]
     content: Option<String>,
+
     /// Attachment Id for background
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1, max = 128))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     background: Option<String>,
 }
 
@@ -26,29 +27,37 @@ pub struct UserProfileData {
 pub struct UserEdit {
     /// New display name
     #[validate(length(min = 2, max = 32), regex = "RE_DISPLAY_NAME")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     display_name: Option<String>,
+
     /// Attachment Id for avatar
     #[validate(length(min = 1, max = 128))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     avatar: Option<String>,
 
     /// New user status
     #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     status: Option<UserStatus>,
+
     /// New user profile data
     ///
     /// This is applied as a partial.
     #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     profile: Option<UserProfileData>,
 
     /// Bitfield of user badges
     #[serde(skip_serializing_if = "Option::is_none")]
     badges: Option<i32>,
+
     /// Enum of user flags
     #[serde(skip_serializing_if = "Option::is_none")]
     flags: Option<i32>,
 
     /// Fields to remove from user object
     #[validate(length(min = 1))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     remove: Option<Vec<FieldsUser>>,
 }
 

@@ -12,18 +12,27 @@ use crate::{error::HttpError, Http};
 pub struct RoleEdit {
     /// Role name
     #[validate(length(min = 1, max = 32))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
+
     /// Role colour
     #[validate(length(min = 1, max = 128), regex = "RE_COLOUR")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     colour: Option<String>,
+
     /// Whether this role should be displayed separately
+    #[serde(skip_serializing_if = "Option::is_none")]
     hoist: Option<bool>,
+
     /// Ranking position
     ///
     /// Smaller values take priority.
+    #[serde(skip_serializing_if = "Option::is_none")]
     rank: Option<i64>,
+
     /// Fields to remove from role object
     #[validate(length(min = 1))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     remove: Option<Vec<FieldsRole>>,
 }
 

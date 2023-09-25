@@ -12,15 +12,24 @@ use crate::{error::HttpError, Http};
 pub struct MemberEdit {
     /// Member nickname
     #[validate(length(min = 1, max = 32))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     nickname: Option<String>,
+
     /// Attachment Id to set for avatar
+    #[serde(skip_serializing_if = "Option::is_none")]
     avatar: Option<String>,
+
     /// Array of role ids
+    #[serde(skip_serializing_if = "Option::is_none")]
     roles: Option<Vec<String>>,
+
     /// Timestamp this member is timed out until
+    #[serde(skip_serializing_if = "Option::is_none")]
     timeout: Option<Timestamp>,
+
     /// Fields to remove from channel object
     #[validate(length(min = 1))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     remove: Option<Vec<FieldsMember>>,
 }
 

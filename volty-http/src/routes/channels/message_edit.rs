@@ -11,9 +11,12 @@ use super::message_send::SendableEmbed;
 pub struct MessageEdit {
     /// New message content
     #[validate(length(min = 1, max = 2000))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     content: Option<String>,
+
     /// Embeds to include in the message
     #[validate(length(min = 0, max = 10))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     embeds: Option<Vec<SendableEmbed>>,
 }
 
