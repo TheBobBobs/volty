@@ -54,3 +54,9 @@ pub struct File {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub object_id: Option<String>,
 }
+
+impl File {
+    pub fn autumn_url(&self, autumn_base_url: &str) -> String {
+        format!("{autumn_base_url}/{}/{}", &self.tag, &self.id)
+    }
+}
