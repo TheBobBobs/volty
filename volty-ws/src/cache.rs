@@ -6,7 +6,7 @@ use std::{
 
 use async_trait::async_trait;
 use futures_util::Future;
-use tokio::sync::RwLock;
+use tokio::sync::{OnceCell, RwLock};
 use volty_http::{error::HttpError, ApiError, Http};
 use volty_types::{
     channels::{channel::Channel, message::Message},
@@ -19,6 +19,7 @@ use volty_types::{
     servers::{server::Server, server_member::Member},
     users::user::{RelationshipStatus, User},
     ws::server::ServerMessage,
+    RevoltConfig,
 };
 
 #[derive(Clone, Default)]
@@ -111,8 +112,10 @@ impl MemberCache {
 }
 
 pub struct InnerCache {
+    api_info: OnceCell<RevoltConfig>,
     user_id: OnceLock<String>,
     user_mention: OnceLock<String>,
+
     users: moka::future::Cache<String, User>,
     servers: RwLock<HashMap<String, Server>>,
     channels: RwLock<HashMap<String, Channel>>,
@@ -127,6 +130,7 @@ pub struct InnerCache {
 impl Default for InnerCache {
     fn default() -> Self {
         Self {
+            api_info: OnceCell::new(),
             user_id: Default::default(),
             user_mention: Default::default(),
             users: moka::future::Cache::new(1024),
@@ -141,6 +145,13 @@ impl Default for InnerCache {
 }
 
 impl InnerCache {
+    pub async fn api_info(&self, http: &Http) -> Result<RevoltConfig, HttpError> {
+        self.api_info
+            .get_or_try_init(|| async move { http.api_info().await })
+            .await
+            .cloned()
+    }
+
     pub fn user_id(&self) -> &str {
         self.user_id.get().expect("Only called after ready.")
     }

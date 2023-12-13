@@ -113,12 +113,11 @@ impl Buckets {
         if let Some(bucket) = buckets.get_mut(key) {
             bucket.deduct(key.limit())
         } else {
-            drop(buckets);
             let bucket = Bucket {
                 used: 1,
                 reset: Instant::now() + Duration::from_secs(10),
             };
-            self.buckets.lock().unwrap().insert(key.clone(), bucket);
+            buckets.insert(key.clone(), bucket);
             Ok(())
         }
     }
