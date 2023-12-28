@@ -37,8 +37,8 @@ async fn retrying_connect(url: &str) -> (WsTX, WsRX) {
 }
 
 fn parse_msg(message: tungstenite::Message) -> Option<ServerMessage> {
-    if let tungstenite::Message::Text(text) = message {
-        match serde_json::from_str::<ServerMessage>(&text) {
+    if let tungstenite::Message::Binary(bytes) = message {
+        match rmp_serde::from_slice::<ServerMessage>(&bytes) {
             Ok(msg) => Some(msg),
             Err(e) => {
                 log::error!("Parse: {:?}", e);
@@ -83,7 +83,7 @@ impl WebSocket {
         ws_url: impl std::fmt::Display,
         token: impl std::fmt::Display,
     ) -> Self {
-        let url = format!("{}/?format=json&token={}", &ws_url, &token);
+        let url = format!("{}/?format=msgpack&token={}", &ws_url, &token);
         let (tx, rx) = retrying_connect(&url).await;
         let inner = InnerWebSocket {
             url,
@@ -184,8 +184,8 @@ impl WebSocket {
 
     pub async fn send(&self, message: &ClientMessage) -> Result<(), tungstenite::Error> {
         log::debug!("Sending message: {:?}", message);
-        let text = serde_json::to_string(message).expect("ClientMessage failed to serialize");
-        let item = tungstenite::Message::Text(text);
+        let bytes = rmp_serde::to_vec_named(message).expect("ClientMessage failed to serialize");
+        let item = tungstenite::Message::Binary(bytes);
         let mut result = self.tx.lock().await.send(item.clone()).await;
         self.update_last_message().await;
         while let Err(e) = result {
