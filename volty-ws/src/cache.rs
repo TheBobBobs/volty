@@ -115,6 +115,7 @@ pub struct InnerCache {
     api_info: OnceCell<RevoltConfig>,
     user_id: OnceLock<String>,
     user_mention: OnceLock<String>,
+    user: RwLock<Option<User>>,
 
     users: moka::future::Cache<String, User>,
     servers: RwLock<HashMap<String, Server>>,
@@ -133,6 +134,7 @@ impl Default for InnerCache {
             api_info: OnceCell::new(),
             user_id: Default::default(),
             user_mention: Default::default(),
+            user: Default::default(),
             users: moka::future::Cache::new(1024),
             servers: Default::default(),
             channels: Default::default(),
@@ -161,8 +163,11 @@ impl InnerCache {
     }
 
     pub async fn user(&self) -> User {
-        let user_id = self.user_id.get().expect("Only called after ready.");
-        self.get_user(user_id).await.unwrap()
+        self.user
+            .read()
+            .await
+            .clone()
+            .expect("Only called after ready.")
     }
 
     pub async fn get_user(&self, user_id: &str) -> Option<User> {
@@ -368,14 +373,15 @@ impl UpdateCache for InnerCache {
                 members,
                 emojis,
             } => {
-                let user_id = users
+                let user = users
                     .iter()
                     .find(|u| matches!(u.relationship, Some(RelationshipStatus::User)))
                     .expect("User should be sent in Ready")
-                    .id
                     .clone();
+                let user_id = user.id.clone();
                 self.user_id.get_or_init(|| user_id.clone());
                 self.user_mention.get_or_init(|| format!("<@{user_id}>"));
+                self.user.write().await.replace(user);
                 self.users.invalidate_all();
                 for user in users {
                     self.users.insert(user.id.clone(), user).await;
@@ -663,6 +669,9 @@ impl UpdateCache for InnerCache {
                     user.apply_options(data);
                     for field in clear {
                         field.remove(&mut user);
+                    }
+                    if user.id == self.user_id() {
+                        self.user.write().await.replace(user.clone());
                     }
                     self.users.insert(id, user).await;
                 }
