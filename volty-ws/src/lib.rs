@@ -213,4 +213,14 @@ impl WebSocket {
         })
         .await
     }
+
+    pub async fn send_end_typing(
+        &self,
+        channel_id: impl std::fmt::Display,
+    ) -> Result<(), tungstenite::Error> {
+        self.send(&ClientMessage::EndTyping {
+            channel: channel_id.to_string(),
+        })
+        .await
+    }
 }
