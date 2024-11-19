@@ -105,7 +105,7 @@ pub enum ErrorType {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CoreError {
     /// Type of error and additional information
-    #[cfg_attr(feature = "serde", serde(flatten))]
+    #[serde(flatten)]
     pub error_type: ErrorType,
 
     /// Where this error occurred
