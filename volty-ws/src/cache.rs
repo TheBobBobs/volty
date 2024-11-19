@@ -496,7 +496,7 @@ impl UpdateCache for InnerCache {
             } => {
                 if let Some(mut message) = self.messages.get(&id).await {
                     if let Some(reactions) = message.reactions.get_mut(&emoji_id) {
-                        reactions.remove(&user_id);
+                        reactions.swap_remove(&user_id);
                         if reactions.is_empty() {
                             message.reactions.shift_remove(&emoji_id);
                         }
