@@ -26,7 +26,7 @@ pub struct UserProfileData {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, Validate)]
 pub struct UserEdit {
     /// New display name
-    #[validate(length(min = 2, max = 32), regex = "RE_DISPLAY_NAME")]
+    #[validate(length(min = 2, max = 32), regex(path = *RE_DISPLAY_NAME))]
     #[serde(skip_serializing_if = "Option::is_none")]
     display_name: Option<String>,
 
@@ -36,14 +36,14 @@ pub struct UserEdit {
     avatar: Option<String>,
 
     /// New user status
-    #[validate]
+    #[validate(nested)]
     #[serde(skip_serializing_if = "Option::is_none")]
     status: Option<UserStatus>,
 
     /// New user profile data
     ///
     /// This is applied as a partial.
-    #[validate]
+    #[validate(nested)]
     #[serde(skip_serializing_if = "Option::is_none")]
     profile: Option<UserProfileData>,
 

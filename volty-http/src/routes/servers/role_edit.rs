@@ -16,7 +16,7 @@ pub struct RoleEdit {
     name: Option<String>,
 
     /// Role colour
-    #[validate(length(min = 1, max = 128), regex = "RE_COLOUR")]
+    #[validate(length(min = 1, max = 128), regex(path = *RE_COLOUR))]
     #[serde(skip_serializing_if = "Option::is_none")]
     colour: Option<String>,
 

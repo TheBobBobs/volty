@@ -70,6 +70,7 @@ impl Http {
         );
         let client = reqwest::Client::builder()
             .default_headers(headers)
+            .use_rustls_tls()
             .build()
             .unwrap();
         let inner = InnerHttp {

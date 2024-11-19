@@ -28,7 +28,7 @@ pub struct SendableEmbed {
     #[serde(skip_serializing_if = "Option::is_none")]
     media: Option<String>,
 
-    #[validate(length(min = 1, max = 128), regex = "RE_COLOUR")]
+    #[validate(length(min = 1, max = 128), regex(path = *RE_COLOUR))]
     #[serde(skip_serializing_if = "Option::is_none")]
     colour: Option<String>,
 }
@@ -93,7 +93,7 @@ pub struct SendableMessage {
     embeds: Option<Vec<SendableEmbed>>,
 
     /// Masquerade to apply to this message
-    #[validate]
+    #[validate(nested)]
     #[serde(skip_serializing_if = "Option::is_none")]
     masquerade: Option<Masquerade>,
 

@@ -71,7 +71,7 @@ pub struct Masquerade {
     ///
     /// Must have `ManageRole` permission to use
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[validate(length(min = 1, max = 128), regex = "RE_COLOUR")]
+    #[validate(length(min = 1, max = 128), regex(path = *RE_COLOUR))]
     pub colour: Option<String>,
 }
 
