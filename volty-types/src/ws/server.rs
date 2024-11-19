@@ -171,6 +171,7 @@ pub enum ServerMessage {
         id: String,
         server: Server,
         channels: Vec<Channel>,
+        emojis: Vec<Emoji>,
     },
 
     /// Update existing server

@@ -66,7 +66,14 @@ pub trait RawHandler {
     async fn on_channel_stop_typing(&self, id: String, user_id: String) {}
     async fn on_channel_ack(&self, id: String, user_id: String, message_id: String) {}
 
-    async fn on_server_create(&self, id: String, server: Server, channels: Vec<Channel>) {}
+    async fn on_server_create(
+        &self,
+        id: String,
+        server: Server,
+        channels: Vec<Channel>,
+        emojis: Vec<Emoji>,
+    ) {
+    }
     async fn on_server_update(&self, id: String, data: PartialServer, clear: Vec<FieldsServer>) {}
     async fn on_server_delete(&self, id: String) {}
     async fn on_server_member_update(
@@ -209,8 +216,9 @@ pub trait RawHandler {
                 id,
                 server,
                 channels,
+                emojis,
             } => {
-                self.on_server_create(id, server, channels).await;
+                self.on_server_create(id, server, channels, emojis).await;
             }
             ServerUpdate { id, data, clear } => {
                 self.on_server_update(id, data, clear).await;

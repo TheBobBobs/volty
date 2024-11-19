@@ -496,7 +496,7 @@ impl UpdateCache for InnerCache {
             } => {
                 if let Some(mut message) = self.messages.get(&id).await {
                     if let Some(reactions) = message.reactions.get_mut(&emoji_id) {
-                        reactions.swap_remove(&user_id);
+                        reactions.shift_remove(&user_id);
                         if reactions.is_empty() {
                             message.reactions.shift_remove(&emoji_id);
                         }
@@ -573,11 +573,16 @@ impl UpdateCache for InnerCache {
                 id,
                 server,
                 channels,
+                emojis,
             } => {
                 self.servers.write().await.insert(id.clone(), server);
                 let mut c_channels = self.channels.write().await;
                 for channel in channels {
                     c_channels.insert(channel.id().to_string(), channel);
+                }
+                let mut c_emojis = self.emojis.write().await;
+                for emoji in emojis {
+                    c_emojis.insert(emoji.id.clone(), emoji);
                 }
                 let user_id = self.user_id().to_string();
                 let members = MemberCache::default();
