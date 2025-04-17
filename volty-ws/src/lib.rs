@@ -8,7 +8,7 @@ use tokio::net::TcpStream;
 use tokio::select;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
-use tokio_tungstenite::tungstenite;
+use tokio_tungstenite::tungstenite::{self, Bytes};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 use volty_types::ws::{client::ClientMessage, common::Ping, server::ServerMessage};
@@ -184,7 +184,9 @@ impl WebSocket {
 
     pub async fn send(&self, message: &ClientMessage) -> Result<(), tungstenite::Error> {
         log::debug!("Sending message: {:?}", message);
-        let bytes = rmp_serde::to_vec_named(message).expect("ClientMessage failed to serialize");
+        let bytes = Bytes::from(
+            rmp_serde::to_vec_named(message).expect("ClientMessage failed to serialize"),
+        );
         let item = tungstenite::Message::Binary(bytes);
         let mut result = self.tx.lock().await.send(item.clone()).await;
         self.update_last_message().await;
