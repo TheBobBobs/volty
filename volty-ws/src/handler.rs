@@ -2,15 +2,17 @@ use async_trait::async_trait;
 use volty_types::{
     channels::{
         channel::{Channel, FieldsChannel, PartialChannel},
-        message::{AppendMessage, Message, PartialMessage},
+        message::{AppendMessage, FieldsMessage, Message, PartialMessage},
     },
     media::emoji::Emoji,
     servers::{
         server::{FieldsRole, FieldsServer, PartialRole, PartialServer, Server},
-        server_member::{FieldsMember, Member, MemberCompositeKey, PartialMember},
+        server_member::{
+            FieldsMember, Member, MemberCompositeKey, PartialMember, RemovalIntention,
+        },
     },
     users::{
-        user::{FieldsUser, PartialUser, RelationshipStatus, User},
+        user::{FieldsUser, PartialUser, User},
         user_settings::UserSettings,
     },
     ws::{common::Ping, server::ServerMessage},
@@ -34,7 +36,14 @@ pub trait RawHandler {
     async fn on_pong(&self, data: Ping) {}
 
     async fn on_message(&self, message: Message) {}
-    async fn on_message_update(&self, id: String, channel_id: String, data: PartialMessage) {}
+    async fn on_message_update(
+        &self,
+        id: String,
+        channel_id: String,
+        data: PartialMessage,
+        clear: Vec<FieldsMessage>,
+    ) {
+    }
     async fn on_message_append(&self, id: String, channel_id: String, append: AppendMessage) {}
     async fn on_message_delete(&self, id: String, channel_id: String) {}
     async fn on_message_react(
@@ -83,8 +92,8 @@ pub trait RawHandler {
         clear: Vec<FieldsMember>,
     ) {
     }
-    async fn on_server_member_join(&self, id: String, user_id: String) {}
-    async fn on_server_member_leave(&self, id: String, user_id: String) {}
+    async fn on_server_member_join(&self, id: String, member: Member) {}
+    async fn on_server_member_leave(&self, id: String, user_id: String, reason: RemovalIntention) {}
     async fn on_server_role_update(
         &self,
         id: String,
@@ -94,9 +103,10 @@ pub trait RawHandler {
     ) {
     }
     async fn on_server_role_delete(&self, id: String, role_id: String) {}
+    async fn on_server_role_ranks_update(&self, id: String, ranks: Vec<String>) {}
 
     async fn on_user_update(&self, id: String, data: PartialUser, clear: Vec<FieldsUser>) {}
-    async fn on_user_relationship(&self, id: String, user: User, status: RelationshipStatus) {}
+    async fn on_user_relationship(&self, id: String, user: User) {}
     async fn on_user_settings_update(&self, id: String, update: UserSettings) {}
     async fn on_user_platform_wipe(&self, user_id: String, flags: i32) {}
 
@@ -108,6 +118,13 @@ pub trait RawHandler {
     async fn on_event(&self, event: ServerMessage) {
         use ServerMessage::*;
         match event {
+            WebhookCreate(_) => {}
+            WebhookUpdate {
+                id: _,
+                data: _,
+                remove: _,
+            } => {}
+            WebhookDelete { id: _ } => {}
             Bulk { v } => {
                 for event in v {
                     self.on_event(event).await;
@@ -142,8 +159,9 @@ pub trait RawHandler {
                 id,
                 channel_id,
                 data,
+                clear,
             } => {
-                self.on_message_update(id, channel_id, data).await;
+                self.on_message_update(id, channel_id, data, clear).await;
             }
             MessageAppend {
                 id,
@@ -212,6 +230,11 @@ pub trait RawHandler {
             } => {
                 self.on_channel_ack(id, user_id, message_id).await;
             }
+            VoiceChannelJoin { .. }
+            | VoiceChannelLeave { .. }
+            | VoiceChannelMove { .. }
+            | UserVoiceStateUpdate { .. }
+            | UserMoveVoiceChannel { .. } => {}
             ServerCreate {
                 id,
                 server,
@@ -229,11 +252,15 @@ pub trait RawHandler {
             ServerMemberUpdate { id, data, clear } => {
                 self.on_server_member_update(id, data, clear).await;
             }
-            ServerMemberJoin { id, user_id } => {
-                self.on_server_member_join(id, user_id).await;
+            ServerMemberJoin { id, member } => {
+                self.on_server_member_join(id, member).await;
             }
-            ServerMemberLeave { id, user_id } => {
-                self.on_server_member_leave(id, user_id).await;
+            ServerMemberLeave {
+                id,
+                user_id,
+                reason,
+            } => {
+                self.on_server_member_leave(id, user_id, reason).await;
             }
             ServerRoleUpdate {
                 id,
@@ -246,11 +273,14 @@ pub trait RawHandler {
             ServerRoleDelete { id, role_id } => {
                 self.on_server_role_delete(id, role_id).await;
             }
+            ServerRoleRanksUpdate { id, ranks } => {
+                self.on_server_role_ranks_update(id, ranks).await;
+            }
             UserUpdate { id, data, clear } => {
                 self.on_user_update(id, data, clear).await;
             }
-            UserRelationship { id, user, status } => {
-                self.on_user_relationship(id, user, status).await;
+            UserRelationship { id, user } => {
+                self.on_user_relationship(id, user).await;
             }
             UserSettingsUpdate { id, update } => {
                 self.on_user_settings_update(id, update).await;

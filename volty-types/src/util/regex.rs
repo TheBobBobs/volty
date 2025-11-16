@@ -24,6 +24,9 @@ pub static RE_COLOUR: Lazy<Regex> = Lazy::new(|| {
 pub static RE_MENTION: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"<@([0-9A-HJKMNP-TV-Z]{26})>").unwrap());
 
+pub static RE_ROLE_MENTION: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"<%([0-9A-HJKMNP-TV-Z]{26})>").unwrap());
+
 /// Regex for valid display names
 ///
 /// Block zero width space

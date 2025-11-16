@@ -100,6 +100,11 @@ pub struct SendableMessage {
     /// Information about how this message should be interacted with
     #[serde(skip_serializing_if = "Option::is_none")]
     interactions: Option<Interactions>,
+
+    /// Bitfield of message flags
+    ///
+    /// https://docs.rs/revolt-models/latest/revolt_models/v0/enum.MessageFlags.html
+    pub flags: Option<u32>,
 }
 
 impl SendableMessage {

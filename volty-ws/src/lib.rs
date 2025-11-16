@@ -75,7 +75,7 @@ pub struct InnerWebSocket {
 
 impl WebSocket {
     pub async fn connect(token: impl std::fmt::Display) -> Self {
-        const DEFAULT_WS_URL: &str = "wss://ws.revolt.chat";
+        const DEFAULT_WS_URL: &str = "wss://events.stoat.chat";
         Self::connect_with_url(DEFAULT_WS_URL, token).await
     }
 

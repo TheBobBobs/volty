@@ -1,3 +1,4 @@
+use iso8601_timestamp::Timestamp;
 use optional_struct::OptionalStruct;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
@@ -213,4 +214,19 @@ pub enum UserHint {
     Bot,
     /// Only match users
     User,
+}
+
+/// Representiation of a User on Revolt.
+#[derive(Clone, Debug, Deserialize, Serialize, OptionalStruct)]
+#[optional_derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[optional_name = "PartialUserVoiceState"]
+#[opt_skip_serializing_none]
+#[opt_some_priority]
+pub struct UserVoiceState {
+    pub id: String,
+    pub joined_at: Timestamp,
+    pub is_receiving: bool,
+    pub is_publishing: bool,
+    pub screensharing: bool,
+    pub camera: bool,
 }

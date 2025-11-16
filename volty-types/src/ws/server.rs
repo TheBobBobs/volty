@@ -3,15 +3,18 @@ use serde::{Deserialize, Serialize};
 use crate::{
     channels::{
         channel::{Channel, FieldsChannel, PartialChannel},
-        message::{AppendMessage, Message, PartialMessage},
+        message::{AppendMessage, FieldsMessage, Message, PartialMessage},
+        webhook::{FieldsWebhook, PartialWebhook, Webhook},
     },
     media::emoji::Emoji,
     servers::{
         server::{FieldsRole, FieldsServer, PartialRole, PartialServer, Server},
-        server_member::{FieldsMember, Member, MemberCompositeKey, PartialMember},
+        server_member::{
+            FieldsMember, Member, MemberCompositeKey, PartialMember, RemovalIntention,
+        },
     },
     users::{
-        user::{FieldsUser, PartialUser, RelationshipStatus, User},
+        user::{FieldsUser, PartialUser, PartialUserVoiceState, User, UserVoiceState},
         user_settings::UserSettings,
     },
     util::result::Error,
@@ -44,7 +47,9 @@ pub enum ErrorEvent {
 #[serde(tag = "type")]
 pub enum ServerMessage {
     /// Multiple events
-    Bulk { v: Vec<ServerMessage> },
+    Bulk {
+        v: Vec<ServerMessage>,
+    },
 
     /// Successfully authenticated
     Authenticated,
@@ -59,7 +64,9 @@ pub enum ServerMessage {
     },
 
     /// Ping response
-    Pong { data: Ping },
+    Pong {
+        data: Ping,
+    },
 
     /// New message
     Message(Message),
@@ -70,6 +77,8 @@ pub enum ServerMessage {
         #[serde(rename = "channel")]
         channel_id: String,
         data: PartialMessage,
+        #[serde(default)]
+        clear: Vec<FieldsMessage>,
     },
 
     /// Append information to existing message
@@ -128,7 +137,9 @@ pub enum ServerMessage {
     },
 
     /// Delete channel
-    ChannelDelete { id: String },
+    ChannelDelete {
+        id: String,
+    },
 
     /// User joins a group
     ChannelGroupJoin {
@@ -166,6 +177,37 @@ pub enum ServerMessage {
         message_id: String,
     },
 
+    /// Voice events
+    VoiceChannelJoin {
+        id: String,
+        state: UserVoiceState,
+    },
+
+    VoiceChannelLeave {
+        id: String,
+        user: String,
+    },
+
+    VoiceChannelMove {
+        user: String,
+        from: String,
+        to: String,
+        state: UserVoiceState,
+    },
+
+    UserVoiceStateUpdate {
+        id: String,
+        channel_id: String,
+        data: PartialUserVoiceState,
+    },
+
+    UserMoveVoiceChannel {
+        node: String,
+        from: String,
+        to: String,
+        token: String,
+    },
+
     /// New server
     ServerCreate {
         id: String,
@@ -182,7 +224,9 @@ pub enum ServerMessage {
     },
 
     /// Delete server
-    ServerDelete { id: String },
+    ServerDelete {
+        id: String,
+    },
 
     /// Update existing server member
     ServerMemberUpdate {
@@ -194,8 +238,7 @@ pub enum ServerMessage {
     /// User joins server
     ServerMemberJoin {
         id: String,
-        #[serde(rename = "user")]
-        user_id: String,
+        member: Member,
     },
 
     /// User left server
@@ -203,6 +246,7 @@ pub enum ServerMessage {
         id: String,
         #[serde(rename = "user")]
         user_id: String,
+        reason: RemovalIntention,
     },
 
     /// Server role created or updated
@@ -214,7 +258,16 @@ pub enum ServerMessage {
     },
 
     /// Server role deleted
-    ServerRoleDelete { id: String, role_id: String },
+    ServerRoleDelete {
+        id: String,
+        role_id: String,
+    },
+
+    /// Server roles ranks updated
+    ServerRoleRanksUpdate {
+        id: String,
+        ranks: Vec<String>,
+    },
 
     /// Update existing user
     UserUpdate {
@@ -227,12 +280,13 @@ pub enum ServerMessage {
     UserRelationship {
         id: String,
         user: User,
-        // ! this field can be deprecated
-        status: RelationshipStatus,
     },
 
     /// Settings updated remotely
-    UserSettingsUpdate { id: String, update: UserSettings },
+    UserSettingsUpdate {
+        id: String,
+        update: UserSettings,
+    },
 
     /// User has been platform banned or deleted their account
     ///
@@ -243,13 +297,33 @@ pub enum ServerMessage {
     /// - Server Memberships
     ///
     /// User flags are specified to explain why a wipe is occurring though not all reasons will necessarily ever appear.
-    UserPlatformWipe { user_id: String, flags: i32 },
+    UserPlatformWipe {
+        user_id: String,
+        flags: i32,
+    },
 
     /// New emoji
     EmojiCreate(Emoji),
 
     /// Delete emoji
-    EmojiDelete { id: String },
+    EmojiDelete {
+        id: String,
+    },
+
+    /// New webhook
+    WebhookCreate(Webhook),
+
+    /// Update existing webhook
+    WebhookUpdate {
+        id: String,
+        data: PartialWebhook,
+        remove: Vec<FieldsWebhook>,
+    },
+
+    /// Delete webhook
+    WebhookDelete {
+        id: String,
+    },
 
     /// Auth events
     Auth,

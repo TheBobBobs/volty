@@ -360,6 +360,13 @@ impl UpdateCache for InnerCache {
         let cache = moka::future::CacheBuilder::default().build();
         cache.insert("key".to_string(), 0).await;
         match message {
+            WebhookCreate(_) => {}
+            WebhookUpdate {
+                id: _,
+                data: _,
+                remove: _,
+            } => {}
+            WebhookDelete { id: _ } => {}
             Bulk { v } => {
                 for message in v {
                     self.update(message).await;
@@ -448,6 +455,7 @@ impl UpdateCache for InnerCache {
                 id,
                 channel_id: _,
                 data,
+                clear: _,
             } => {
                 if let Some(mut message) = self.messages.get(&id).await {
                     message.apply_options(data);
@@ -568,6 +576,11 @@ impl UpdateCache for InnerCache {
             ChannelStartTyping { .. } => {}
             ChannelStopTyping { .. } => {}
             ChannelAck { .. } => {}
+            VoiceChannelJoin { .. }
+            | VoiceChannelLeave { .. }
+            | VoiceChannelMove { .. }
+            | UserVoiceStateUpdate { .. }
+            | UserMoveVoiceChannel { .. } => {}
 
             ServerCreate {
                 id,
@@ -622,13 +635,18 @@ impl UpdateCache for InnerCache {
                     }
                 }
             }
-            ServerMemberJoin { id, user_id } => {
+            ServerMemberJoin { id, member } => {
+                let user_id = member.id.user;
                 if let Some(members) = self.members.read().await.get(&id) {
                     let member = Member::new(id, user_id.clone());
                     members.insert(user_id, member).await;
                 }
             }
-            ServerMemberLeave { id, user_id } => {
+            ServerMemberLeave {
+                id,
+                user_id,
+                reason: _,
+            } => {
                 if Some(&user_id) == self.user_id.get() {
                     if let Some(server) = self.servers.write().await.remove(&id) {
                         let mut channels = self.channels.write().await;
@@ -668,6 +686,14 @@ impl UpdateCache for InnerCache {
                     }
                 }
             }
+            ServerRoleRanksUpdate { id, ranks } => {
+                if let Some(server) = self.servers.write().await.get_mut(&id) {
+                    for (rank, role_id) in ranks.iter().enumerate() {
+                        let role = server.roles.get_mut(role_id).unwrap();
+                        role.rank = rank as i64;
+                    }
+                }
+            }
 
             UserUpdate { id, data, clear } => {
                 if let Some(mut user) = self.users.get(&id).await {
@@ -681,11 +707,7 @@ impl UpdateCache for InnerCache {
                     self.users.insert(id, user).await;
                 }
             }
-            UserRelationship {
-                id,
-                user,
-                status: _,
-            } => {
+            UserRelationship { id, user } => {
                 self.users.insert(id, user).await;
             }
             UserSettingsUpdate { .. } => {}

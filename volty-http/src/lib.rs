@@ -31,9 +31,9 @@ impl Deref for Http {
 pub struct InnerHttp {
     api_url: String,
 
-    // TODO all requests will contain token
     buckets: Buckets,
-    client: reqwest::Client,
+    /// all requests will contain token
+    pub client: reqwest::Client,
 }
 
 pub struct Request {
@@ -50,7 +50,7 @@ impl Request {
 
 impl Http {
     pub fn new(token: impl std::fmt::Display, is_bot: bool) -> Self {
-        const DEFAULT_API_URL: &str = "https://api.revolt.chat/";
+        const DEFAULT_API_URL: &str = "https://api.stoat.chat/";
         Self::with_api_url(DEFAULT_API_URL, token, is_bot)
     }
 

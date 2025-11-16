@@ -9,7 +9,10 @@ use crate::{
     servers::server_member::Member,
     types::january::Embed,
     users::user::User,
-    util::{misc::if_false, regex::RE_COLOUR},
+    util::{
+        misc::{if_false, if_option_false, if_zero_u32},
+        regex::RE_COLOUR,
+    },
 };
 
 /// Representation of a message reply before it is sent.
@@ -19,6 +22,10 @@ pub struct Reply {
     pub id: String,
     /// Whether this reply should mention the message's author
     pub mention: bool,
+    /// Whether to error if the referenced message doesn't exist.
+    /// Otherwise, send a message without this reply.
+    /// Default is true.
+    pub fail_if_not_exists: Option<bool>,
 }
 
 impl From<String> for Reply {
@@ -26,6 +33,7 @@ impl From<String> for Reply {
         Self {
             id: value,
             mention: false,
+            fail_if_not_exists: None,
         }
     }
 }
@@ -35,6 +43,7 @@ impl From<&str> for Reply {
         Self {
             id: value.to_string(),
             mention: false,
+            fail_if_not_exists: None,
         }
     }
 }
@@ -54,6 +63,9 @@ pub enum SystemMessage {
     ChannelDescriptionChanged { by: String },
     ChannelIconChanged { by: String },
     ChannelOwnershipChanged { from: String, to: String },
+    MessagePinned { id: String, by: String },
+    MessageUnpinned { id: String, by: String },
+    CallStarted { by: String, finished_at: Option<Timestamp> },
 }
 
 /// Name and / or avatar override information
@@ -153,6 +165,15 @@ pub struct Message {
     /// Name and / or avatar overrides for this message
     #[serde(skip_serializing_if = "Option::is_none")]
     pub masquerade: Option<Masquerade>,
+    /// Whether or not the message in pinned
+    #[serde(skip_serializing_if = "if_option_false")]
+    pub pinned: Option<bool>,
+
+    /// Bitfield of message flags
+    ///
+    /// https://docs.rs/revolt-models/latest/revolt_models/v0/enum.MessageFlags.html
+    #[serde(skip_serializing_if = "if_zero_u32", default)]
+    pub flags: u32,
 }
 
 /// Sort used for retrieving messages
@@ -192,4 +213,21 @@ pub struct AppendMessage {
     /// Additional embeds to include in this message
     #[serde(skip_serializing_if = "Option::is_none")]
     pub embeds: Option<Vec<Embed>>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[repr(u32)]
+pub enum MessageFlags {
+    /// Message will not send push / desktop notifications
+    SuppressNotifications = 1,
+    /// Message will mention all users who can see the channel
+    MentionsEveryone = 2,
+    /// Message will mention all users who are online and can see the channel.
+    /// This cannot be true if MentionsEveryone is true
+    MentionsOnline = 3,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum FieldsMessage {
+    Pinned,
 }

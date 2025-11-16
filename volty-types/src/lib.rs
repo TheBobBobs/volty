@@ -34,15 +34,22 @@ pub struct Feature {
     pub url: String,
 }
 
+/// # Voice Node Configuration
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct VoiceNode {
+    pub name: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub public_url: String,
+}
+
 /// # Voice Server Configuration
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VoiceFeature {
     /// Whether voice is enabled
     pub enabled: bool,
-    /// URL pointing to the voice API
-    pub url: String,
-    /// URL pointing to the voice WebSocket server
-    pub ws: String,
+    /// All livekit nodes
+    pub nodes: Vec<VoiceNode>,
 }
 
 /// # Feature Configuration
@@ -59,7 +66,7 @@ pub struct RevoltFeatures {
     /// Proxy service configuration
     pub january: Feature,
     /// Voice server configuration
-    pub voso: VoiceFeature,
+    pub livekit: VoiceFeature,
 }
 
 /// # Build Information

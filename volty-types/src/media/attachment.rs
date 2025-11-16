@@ -34,25 +34,6 @@ pub struct File {
     pub content_type: String,
     /// Size of this file (in bytes)
     pub size: isize,
-
-    /// Whether this file was deleted
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub deleted: Option<bool>,
-    /// Whether this file was reported
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reported: Option<bool>,
-
-    // ! THE FOLLOWING SHOULD BE DEPRECATED
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub server_id: Option<String>,
-
-    /// Id of the object this file is associated with
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub object_id: Option<String>,
 }
 
 impl File {
