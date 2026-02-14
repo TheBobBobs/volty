@@ -3,10 +3,10 @@ use std::{collections::HashMap, ops::Deref, sync::Arc, time::Duration};
 use bucket::{BucketKey, Buckets};
 use error::HttpError;
 use reqwest::{
-    header::{HeaderMap, HeaderValue},
     Method, RequestBuilder,
+    header::{HeaderMap, HeaderValue},
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use volty_types::RevoltConfig;
 
 mod bucket;
@@ -68,9 +68,11 @@ impl Http {
             },
             HeaderValue::from_str(&token.to_string()).unwrap(),
         );
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .unwrap();
         let client = reqwest::Client::builder()
             .default_headers(headers)
-            .use_rustls_tls()
             .build()
             .unwrap();
         let inner = InnerHttp {
