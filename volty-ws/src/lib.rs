@@ -1,6 +1,7 @@
 pub use async_trait::async_trait;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
+use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -8,8 +9,9 @@ use tokio::net::TcpStream;
 use tokio::select;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_tungstenite::tungstenite::{self, Bytes};
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async_with_config};
 
 use volty_types::ws::{client::ClientMessage, common::Ping, server::ServerMessage};
 
@@ -23,8 +25,12 @@ type WsRX = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 type WsTX = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>;
 
 async fn retrying_connect(url: &str) -> (WsTX, WsRX) {
+    const MIB: usize = 1024 * 1024;
+    let config = WebSocketConfig::default()
+        .max_frame_size(Some(64 * MIB))
+        .max_message_size(Some(128 * MIB));
     loop {
-        match connect_async(url).await {
+        match connect_async_with_config(url, Some(config), false).await {
             Ok((stream, _)) => {
                 return stream.split();
             }
