@@ -52,20 +52,55 @@ impl From<&str> for Reply {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SystemMessage {
-    Text { content: String },
-    UserAdded { id: String, by: String },
-    UserRemove { id: String, by: String },
-    UserJoined { id: String },
-    UserLeft { id: String },
-    UserKicked { id: String },
-    UserBanned { id: String },
-    ChannelRenamed { name: String, by: String },
-    ChannelDescriptionChanged { by: String },
-    ChannelIconChanged { by: String },
-    ChannelOwnershipChanged { from: String, to: String },
-    MessagePinned { id: String, by: String },
-    MessageUnpinned { id: String, by: String },
-    CallStarted { by: String, finished_at: Option<Timestamp> },
+    Text {
+        content: String,
+    },
+    UserAdded {
+        id: String,
+        by: String,
+    },
+    UserRemove {
+        id: String,
+        by: String,
+    },
+    UserJoined {
+        id: String,
+    },
+    UserLeft {
+        id: String,
+    },
+    UserKicked {
+        id: String,
+    },
+    UserBanned {
+        id: String,
+    },
+    ChannelRenamed {
+        name: String,
+        by: String,
+    },
+    ChannelDescriptionChanged {
+        by: String,
+    },
+    ChannelIconChanged {
+        by: String,
+    },
+    ChannelOwnershipChanged {
+        from: String,
+        to: String,
+    },
+    MessagePinned {
+        id: String,
+        by: String,
+    },
+    MessageUnpinned {
+        id: String,
+        by: String,
+    },
+    CallStarted {
+        by: String,
+        finished_at: Option<Timestamp>,
+    },
 }
 
 /// Name and / or avatar override information
@@ -135,6 +170,9 @@ pub struct Message {
     /// Id of the user that sent this message
     #[serde(rename = "author")]
     pub author_id: String,
+    #[serde(rename = "user")]
+    pub author: Option<User>,
+    pub member: Option<Member>,
 
     /// Message content
     #[serde(skip_serializing_if = "Option::is_none")]

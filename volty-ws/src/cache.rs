@@ -7,19 +7,19 @@ use std::{
 use async_trait::async_trait;
 use futures_util::Future;
 use tokio::sync::{OnceCell, RwLock};
-use volty_http::{error::HttpError, ApiError, Http};
+use volty_http::{ApiError, Http, error::HttpError};
 use volty_types::{
+    RevoltConfig,
     channels::{channel::Channel, message::Message},
     media::emoji::Emoji,
     permissions::{
-        calculate_dm_permissions, calculate_group_permissions,
+        PermissionValue, calculate_dm_permissions, calculate_group_permissions,
         calculate_server_channel_permissions, calculate_server_permissions,
-        calculate_sm_permissions, PermissionValue,
+        calculate_sm_permissions,
     },
     servers::{server::Server, server_member::Member},
     users::user::{RelationshipStatus, User},
     ws::server::ServerMessage,
-    RevoltConfig,
 };
 
 #[derive(Clone, Default)]
@@ -53,6 +53,13 @@ impl Default for MemberCache {
 }
 
 impl MemberCache {
+    async fn contains(&self, user_id: &str) -> bool {
+        match self {
+            MemberCache::Partial(cache) => cache.contains_key(user_id),
+            MemberCache::Full(cache) => cache.read().await.contains_key(user_id),
+        }
+    }
+
     async fn get(&self, user_id: &str) -> Option<Member> {
         match self {
             MemberCache::Partial(cache) => cache.get(user_id).await,
@@ -295,10 +302,10 @@ impl InnerCache {
     ) -> Result<Vec<Member>, HttpError> {
         self.ensure_members(http, server_id).await?;
         let s_members = self.members.read().await;
-        if let Some(members) = s_members.get(server_id) {
-            if members.is_full() {
-                return Ok(members.values().await);
-            }
+        if let Some(members) = s_members.get(server_id)
+            && members.is_full()
+        {
+            return Ok(members.values().await);
         }
         Err(HttpError::Api(ApiError::NotFound))
     }
@@ -432,7 +439,7 @@ impl UpdateCache for InnerCache {
             }
             Pong { .. } => {}
 
-            Message(message) => {
+            Message(mut message) => {
                 if let Some(channel) = self.channels.write().await.get_mut(&message.channel_id) {
                     match channel {
                         Channel::DirectMessage {
@@ -447,6 +454,16 @@ impl UpdateCache for InnerCache {
                             *last_message_id = Some(message.id.clone());
                         }
                         Channel::SavedMessages { .. } | Channel::VoiceChannel { .. } => {}
+                    }
+                }
+                if let Some(author) = message.author.take() {
+                    self.users.insert(author.id.clone(), author).await;
+                }
+                if let Some(member) = message.member.take() {
+                    let members = self.members.read().await;
+                    let server = members.get(&member.id.server).unwrap();
+                    if !(server.is_full() || server.contains(&member.id.user).await) {
+                        server.insert(member.id.user.clone(), member).await;
                     }
                 }
                 self.messages.insert(message.id.clone(), message).await;
@@ -467,15 +484,15 @@ impl UpdateCache for InnerCache {
                 channel_id: _,
                 append,
             } => {
-                if let Some(mut message) = self.messages.get(&id).await {
-                    if let Some(embeds) = append.embeds {
-                        if let Some(m_embeds) = &mut message.embeds {
-                            m_embeds.extend(embeds);
-                        } else {
-                            message.embeds = Some(embeds);
-                        }
-                        self.messages.insert(id, message).await;
+                if let Some(mut message) = self.messages.get(&id).await
+                    && let Some(embeds) = append.embeds
+                {
+                    if let Some(m_embeds) = &mut message.embeds {
+                        m_embeds.extend(embeds);
+                    } else {
+                        message.embeds = Some(embeds);
                     }
+                    self.messages.insert(id, message).await;
                 }
             }
             MessageDelete { id, channel_id: _ } => {
@@ -502,14 +519,14 @@ impl UpdateCache for InnerCache {
                 user_id,
                 emoji_id,
             } => {
-                if let Some(mut message) = self.messages.get(&id).await {
-                    if let Some(reactions) = message.reactions.get_mut(&emoji_id) {
-                        reactions.shift_remove(&user_id);
-                        if reactions.is_empty() {
-                            message.reactions.shift_remove(&emoji_id);
-                        }
-                        self.messages.insert(id, message).await;
+                if let Some(mut message) = self.messages.get(&id).await
+                    && let Some(reactions) = message.reactions.get_mut(&emoji_id)
+                {
+                    reactions.shift_remove(&user_id);
+                    if reactions.is_empty() {
+                        message.reactions.shift_remove(&emoji_id);
                     }
+                    self.messages.insert(id, message).await;
                 }
             }
             MessageRemoveReaction {
@@ -544,10 +561,10 @@ impl UpdateCache for InnerCache {
             }
             ChannelUpdate { id, data, clear } => {
                 if let Some(channel) = self.channels.write().await.get_mut(&id) {
-                    data.apply(channel);
                     for field in clear {
                         field.remove(channel);
                     }
+                    data.apply(channel);
                 }
             }
             ChannelDelete { id } => {
@@ -606,10 +623,10 @@ impl UpdateCache for InnerCache {
             }
             ServerUpdate { id, data, clear } => {
                 if let Some(server) = self.servers.write().await.get_mut(&id) {
-                    server.apply_options(data);
                     for field in clear {
                         field.remove(server);
                     }
+                    server.apply_options(data);
                 }
             }
             ServerDelete { id } => {
@@ -625,14 +642,14 @@ impl UpdateCache for InnerCache {
                     .retain(|_, e| e.parent.id() == Some(&id));
             }
             ServerMemberUpdate { id, data, clear } => {
-                if let Some(members) = self.members.read().await.get(&id.server) {
-                    if let Some(mut member) = members.get(&id.user).await {
-                        member.apply_options(data);
-                        for field in clear {
-                            field.remove(&mut member);
-                        }
-                        members.insert(id.user, member).await;
+                if let Some(members) = self.members.read().await.get(&id.server)
+                    && let Some(mut member) = members.get(&id.user).await
+                {
+                    for field in clear {
+                        field.remove(&mut member);
                     }
+                    member.apply_options(data);
+                    members.insert(id.user, member).await;
                 }
             }
             ServerMemberJoin { id, member } => {
@@ -668,10 +685,10 @@ impl UpdateCache for InnerCache {
                 if let Some(server) = self.servers.write().await.get_mut(&id) {
                     // ServerRoleUpdate is also for RoleCreate
                     let role = server.roles.entry(role_id).or_default();
-                    role.apply_options(data);
                     for field in clear {
                         field.remove(role);
                     }
+                    role.apply_options(data);
                 }
             }
             ServerRoleDelete { id, role_id } => {
@@ -689,7 +706,10 @@ impl UpdateCache for InnerCache {
             ServerRoleRanksUpdate { id, ranks } => {
                 if let Some(server) = self.servers.write().await.get_mut(&id) {
                     for (rank, role_id) in ranks.iter().enumerate() {
-                        let role = server.roles.get_mut(role_id).unwrap();
+                        let Some(role) = server.roles.get_mut(role_id) else {
+                            dbg!(&server.roles, &role_id);
+                            continue;
+                        };
                         role.rank = rank as i64;
                     }
                 }
@@ -697,10 +717,10 @@ impl UpdateCache for InnerCache {
 
             UserUpdate { id, data, clear } => {
                 if let Some(mut user) = self.users.get(&id).await {
-                    user.apply_options(data);
                     for field in clear {
                         field.remove(&mut user);
                     }
+                    user.apply_options(data);
                     if user.id == self.user_id() {
                         self.user.write().await.replace(user.clone());
                     }

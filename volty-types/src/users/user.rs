@@ -173,6 +173,7 @@ pub enum FieldsUser {
     ProfileContent,
     ProfileBackground,
     DisplayName,
+    Internal,
 }
 
 impl FieldsUser {
@@ -202,6 +203,7 @@ impl FieldsUser {
             FieldsUser::DisplayName => {
                 user.display_name = None;
             }
+            FieldsUser::Internal => {}
         }
     }
 }
