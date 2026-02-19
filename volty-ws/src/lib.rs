@@ -89,7 +89,13 @@ impl WebSocket {
         ws_url: impl std::fmt::Display,
         token: impl std::fmt::Display,
     ) -> Self {
-        let url = format!("{}/?format=msgpack&token={}", &ws_url, &token);
+        let mut url = ws_url.to_string();
+        // wss://events.stoat.chat -> wss://events.stoat.chat/
+        // wss://stoat.chat/events -> unchanged
+        if url.chars().filter(|c| *c == '/').count() == 2 {
+            url.push('/');
+        }
+        write!(&mut url, "?format=msgpack&token={}", &token).unwrap();
         let (tx, rx) = retrying_connect(&url).await;
         let inner = InnerWebSocket {
             url,
